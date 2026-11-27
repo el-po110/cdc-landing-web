@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import catalog from "@/data/tracks.json";
+import { PlayerBrushField } from "@/components/brush-field";
 import { IllustrationGlitch } from "@/components/illustration-glitch";
 
 const TransportCard = dynamic(
@@ -136,9 +137,11 @@ export function MusicPlayer() {
   const [titleShown, setTitleShown] = useState(tracks[0].title);
   const [titlePulse, setTitlePulse] = useState(0);
   const [lyricLines, setLyricLines] = useState<LyricLine[]>([]);
+  const [trackIndex, setTrackIndex] = useState(0);
   const playingRef = useRef(false);
+  const trackIndexRef = useRef(0);
   const reduceMotion = useReducedMotion();
-  const track = tracks[0];
+  const track = tracks[trackIndex];
   const lyricIndex = activeLyric(lyricLines, currentTime);
   const lyricsSide = track.illustrationSide === "right" ? "left" : "right";
 
@@ -147,7 +150,7 @@ export function MusicPlayer() {
   }, [playing]);
 
   useEffect(() => {
-    const audio = new Audio(track.audio);
+    const audio = new Audio(tracks[0].audio);
     audio.preload = "auto";
     audio.volume = volume;
     audioRef.current = audio;
@@ -156,7 +159,17 @@ export function MusicPlayer() {
       if (!seekingRef.current) setCurrentTime(audio.currentTime);
     };
     const onDuration = () => setDuration(Number.isFinite(audio.duration) ? audio.duration : 0);
-    const onEnded = () => setPlaying(false);
+    const onEnded = () => {
+      const next = (trackIndexRef.current + 1) % tracks.length;
+      trackIndexRef.current = next;
+      setTrackIndex(next);
+      setCurrentTime(0);
+      setDuration(0);
+      setLyricLines([]);
+      setTitlePulse((pulse) => pulse + 1);
+      audio.src = tracks[next].audio;
+      void audio.play().then(() => setPlaying(true)).catch(() => setPlaying(false));
+    };
     audio.addEventListener("timeupdate", onTime);
     audio.addEventListener("loadedmetadata", onDuration);
     audio.addEventListener("durationchange", onDuration);
@@ -172,7 +185,7 @@ export function MusicPlayer() {
     };
     // Volume is applied in its own effect so changing it does not reload the track.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [track.audio]);
+  }, []);
 
   useEffect(() => {
     if (audioRef.current) audioRef.current.volume = volume;
@@ -215,12 +228,20 @@ export function MusicPlayer() {
     }
   }
 
-  function restart() {
+  function loadTrack(index: number, autoplay: boolean) {
     const audio = audioRef.current;
-    if (!audio) return;
-    audio.currentTime = 0;
+    const count = tracks.length;
+    const next = ((index % count) + count) % count;
+    trackIndexRef.current = next;
+    setTrackIndex(next);
     setCurrentTime(0);
+    setDuration(0);
+    setLyricLines([]);
     armTitle();
+    if (!audio) return;
+    audio.src = tracks[next].audio;
+    if (!autoplay) return;
+    void audio.play().then(() => setPlaying(true)).catch(() => setPlaying(false));
   }
 
   function seek(value: number) {
@@ -287,6 +308,7 @@ export function MusicPlayer() {
 
   return (
     <main className="relative h-dvh overflow-hidden bg-carbon-black text-pure-white">
+      <PlayerBrushField />
       <IllustrationGlitch
         src={track.illustration}
         side={track.illustrationSide}
@@ -317,14 +339,14 @@ export function MusicPlayer() {
 
       <h1
         aria-label={track.title}
-        className="absolute top-[26px] left-1/2 z-10 -translate-x-1/2 text-[36px] leading-none font-normal tracking-[0.14em]"
+        className="absolute top-[26px] left-1/2 z-10 -translate-x-1/2 text-[22px] leading-none font-normal tracking-[0.16em]"
       >
         <span aria-hidden="true">{reduceMotion ? track.title : titleShown}</span>
       </h1>
 
-      <div className="absolute bottom-[28px] left-1/2 z-10 flex -translate-x-1/2 flex-col items-center gap-[18px]">
-        <div className="flex w-[min(520px,70vw)] items-center gap-3 text-[13px] leading-none font-bold text-pure-white tabular-nums">
-          <span className="w-11 text-right">{formatClock(currentTime)}</span>
+      <div className="absolute bottom-[22px] left-1/2 z-10 flex -translate-x-1/2 flex-col items-center gap-3">
+        <div className="flex w-[min(360px,62vw)] items-center gap-2 text-[11px] leading-none font-bold text-pure-white tabular-nums">
+          <span className="w-9 text-right">{formatClock(currentTime)}</span>
           <input
             type="range"
             min={0}
@@ -347,12 +369,12 @@ export function MusicPlayer() {
               background: `linear-gradient(to right, #940000 ${progress}%, #2d2d2d ${progress}%)`,
             }}
           />
-          <span className="w-11">{formatClock(duration)}</span>
+          <span className="w-9">{formatClock(duration)}</span>
         </div>
-        <div className="flex items-center gap-[36px]">
+        <div className="flex items-center gap-5">
         <div className="relative">
           {volumeOpen ? (
-            <label className="absolute top-1/2 right-[calc(100%+14px)] flex h-8 w-28 -translate-y-1/2 items-center">
+            <label className="absolute top-1/2 right-[calc(100%+10px)] flex h-7 w-24 -translate-y-1/2 items-center">
               <span className="sr-only">Nivel de volumen</span>
               <input
                 type="range"
@@ -374,15 +396,15 @@ export function MusicPlayer() {
           </ControlButton>
         </div>
 
-        <ControlButton label="Anterior" onClick={restart}>
+        <ControlButton label="Anterior" onClick={() => loadTrack(trackIndexRef.current - 1, playing)}>
           <TriangleIcon direction="left" />
         </ControlButton>
 
-        <div className="size-[156px]">
+        <div className="size-[104px]">
           <TransportCard mode="transport" playing={playing} onActivate={toggle} />
         </div>
 
-        <ControlButton label="Siguiente" onClick={restart}>
+        <ControlButton label="Siguiente" onClick={() => loadTrack(trackIndexRef.current + 1, playing)}>
           <TriangleIcon direction="right" />
         </ControlButton>
 
@@ -416,7 +438,7 @@ function ControlButton({
       aria-label={label}
       aria-pressed={pressed}
       onClick={onClick}
-      className="grid size-[76px] place-items-center text-[#940000] transition-opacity hover:opacity-70"
+      className="grid size-12 place-items-center text-[#940000] transition-opacity hover:opacity-70"
     >
       {children}
     </button>
@@ -425,7 +447,7 @@ function ControlButton({
 
 function DoorIcon() {
   return (
-    <svg width="34" height="46" viewBox="0 0 34 46" aria-hidden="true">
+    <svg width="46" height="62" viewBox="0 0 34 46" aria-hidden="true">
       <path
         d="M6 44V16a11 11 0 0 1 22 0v28"
         fill="none"
@@ -439,7 +461,7 @@ function DoorIcon() {
 
 function TriangleIcon({ direction }: { direction: "left" | "right" }) {
   return (
-    <svg width="42" height="42" viewBox="0 0 28 28" aria-hidden="true">
+    <svg width="26" height="26" viewBox="0 0 28 28" aria-hidden="true">
       <path
         d={direction === "left" ? "M20 4 L6 14 L20 24 Z" : "M8 4 L22 14 L8 24 Z"}
         fill="currentColor"
@@ -450,7 +472,7 @@ function TriangleIcon({ direction }: { direction: "left" | "right" }) {
 
 function SpeakerIcon({ muted }: { muted: boolean }) {
   return (
-    <svg width="44" height="44" viewBox="0 0 30 30" aria-hidden="true">
+    <svg width="28" height="28" viewBox="0 0 30 30" aria-hidden="true">
       <path d="M4 11h5l6-5v18l-6-5H4z" fill="none" stroke="currentColor" strokeWidth="1.8" />
       {muted ? (
         <path d="M20 11l7 8M27 11l-7 8" fill="none" stroke="currentColor" strokeWidth="1.8" />
@@ -468,7 +490,7 @@ function SpeakerIcon({ muted }: { muted: boolean }) {
 
 function LyricsIcon({ active }: { active: boolean }) {
   return (
-    <svg width="46" height="46" viewBox="0 0 32 32" aria-hidden="true">
+    <svg width="28" height="28" viewBox="0 0 32 32" aria-hidden="true">
       <rect
         x="4"
         y="4"

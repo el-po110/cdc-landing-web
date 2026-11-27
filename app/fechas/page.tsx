@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
-import { InteriorPage } from "@/components/interior-page";
+import { ShowDates } from "@/components/show-dates";
 
 export const metadata: Metadata = {
   title: "FECHAS",
 };
 
 export default function FechasPage() {
-  return <InteriorPage title="FECHAS" slot="{{FECHAS}}" />;
+  return <ShowDates />;
 }

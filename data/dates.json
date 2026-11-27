@@ -1,0 +1,28 @@
+{
+  "dates": [
+    {
+      "id": "2026-11-27-bar-bones",
+      "day": "27",
+      "month": "NOV",
+      "city": "Pachuca, Hidalgo",
+      "venue": "Bar Bones",
+      "mapUrl": "https://maps.app.goo.gl/Gg8ZeRuEGnbAKYhy7"
+    },
+    {
+      "id": "2026-11-28-real-under",
+      "day": "28",
+      "month": "NOV",
+      "city": "Ciudad de México",
+      "venue": "Real Under Bar",
+      "mapUrl": "https://maps.app.goo.gl/81WfMWLgfjr3Zdxq9"
+    },
+    {
+      "id": "2026-12-27-cromma-hause",
+      "day": "27",
+      "month": "DIC",
+      "city": "Pachuca, Hidalgo",
+      "venue": "Cromma Hause",
+      "mapUrl": "https://maps.app.goo.gl/WGCeoigh4T932cKo6"
+    }
+  ]
+}

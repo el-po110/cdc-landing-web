@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
-import { InteriorPage } from "@/components/interior-page";
+import { AboutBand } from "@/components/about-band";
 
 export const metadata: Metadata = {
   title: "ACERCA DE",
 };
 
 export default function AcercaDePage() {
-  return <InteriorPage title="ACERCA DE" slot="{{ACERCA}}" />;
+  return <AboutBand />;
 }

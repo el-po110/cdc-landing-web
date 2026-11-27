@@ -7,6 +7,30 @@
       "illustration": "/ilustrations/QMCS.png",
       "illustrationSide": "right",
       "lyrics": "/lyrics/QMCS.txt"
+    },
+    {
+      "id": "NCH",
+      "title": "- Noche -",
+      "audio": "/music/NCH.mp3",
+      "illustration": "/ilustrations/NCH.png",
+      "illustrationSide": "right",
+      "lyrics": "/lyrics/NCH.txt"
+    },
+    {
+      "id": "AS",
+      "title": "- Amor Siniestro -",
+      "audio": "/music/AS.mp3",
+      "illustration": "/ilustrations/AS.png",
+      "illustrationSide": "right",
+      "lyrics": "/lyrics/AS.txt"
+    },
+    {
+      "id": "QR",
+      "title": "- Quiero -",
+      "audio": "/music/QR.mp3",
+      "illustration": "/ilustrations/QR.png",
+      "illustrationSide": "left",
+      "lyrics": "/lyrics/QR.txt"
     }
   ]
 }

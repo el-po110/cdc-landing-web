@@ -77,7 +77,7 @@ body {
 }
 
 .seek-bar {
-  height: 6px;
+  height: 4px;
   border-radius: 999px;
   appearance: none;
   -webkit-appearance: none;
@@ -86,7 +86,7 @@ body {
 }
 
 .seek-bar::-webkit-slider-runnable-track {
-  height: 6px;
+  height: 4px;
   background: transparent;
   border: none;
 }
@@ -94,22 +94,22 @@ body {
 .seek-bar::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 14px;
-  height: 14px;
-  margin-top: -4px;
+  width: 10px;
+  height: 10px;
+  margin-top: -3px;
   border-radius: 999px;
   background: #940000;
 }
 
 .seek-bar::-moz-range-track {
-  height: 6px;
+  height: 4px;
   background: transparent;
   border: none;
 }
 
 .seek-bar::-moz-range-thumb {
-  width: 14px;
-  height: 14px;
+  width: 10px;
+  height: 10px;
   border: 0;
   border-radius: 999px;
   background: #940000;

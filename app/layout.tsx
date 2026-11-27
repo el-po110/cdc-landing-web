@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { BrushField } from "@/components/brush-field";
 import { NavHeader } from "@/components/nav-header";
+import { SiteFooter } from "@/components/site-footer";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -19,6 +20,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <div className="relative z-10">
           <NavHeader />
           {children}
+          <SiteFooter />
         </div>
       </body>
     </html>

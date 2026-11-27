@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
-import { InteriorPage } from "@/components/interior-page";
+import { ContactForm } from "@/components/contact-form";
 
 export const metadata: Metadata = {
   title: "CONTACTO",
 };
 
 export default function ContactoPage() {
-  return <InteriorPage title="CONTACTO" slot="{{CONTACTO}}" />;
+  return <ContactForm />;
 }
