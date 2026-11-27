@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { BrushField } from "@/components/brush-field";
 import { NavHeader } from "@/components/nav-header";
 import "./globals.css";
 
@@ -14,8 +15,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="es" className="h-full antialiased">
       <body className="min-h-full bg-carbon-black font-sans text-pure-white">
-        <NavHeader />
-        {children}
+        <BrushField />
+        <div className="relative z-10">
+          <NavHeader />
+          {children}
+        </div>
       </body>
     </html>
   );

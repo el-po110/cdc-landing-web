@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { usePathname } from "next/navigation";
 
 const PALETTE: Array<[number, number, number]> = [
   [225, 6, 0],
@@ -61,7 +62,7 @@ function tint(rgb: [number, number, number], shade: number) {
   ];
 }
 
-export function BrushField() {
+function WindCanvas() {
   const ref = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -73,7 +74,6 @@ export function BrushField() {
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     let width = 0;
     let height = 0;
-    let dpr = 1;
     const strokes: Stroke[] = [];
     let raf = 0;
     let running = true;
@@ -82,12 +82,24 @@ export function BrushField() {
     let elapsed = 0;
     const pointer = { x: 0, y: 0, vx: 0, vy: 0 };
 
+    const ellipseOf = (x: number, y: number) => {
+      const rx = Math.max(1, width * 0.46);
+      const ry = Math.max(1, height * 0.38);
+      const ex = (x - width * 0.5) / rx;
+      const ey = (y - height * 0.5) / ry;
+      return { ex, ey, rx, ry };
+    };
+
+    const orbitAngle = (x: number, y: number) => {
+      const { ex, ey, rx, ry } = ellipseOf(x, y);
+      if (ex * ex + ey * ey < 0.004) return wind;
+      return Math.atan2(ry * ex, -rx * ey);
+    };
+
     const edgeAlpha = (x: number, y: number) => {
-      const dx = (x / width - 0.5) * 2;
-      const dy = (y / height - 0.5) * 2;
-      const d = Math.hypot(dx * 1.25, dy * 0.78);
-      if (d < 0.28) return 0.05;
-      return Math.min(1, (d - 0.28) / 0.72);
+      const { ex, ey } = ellipseOf(x, y);
+      const mask = Math.min(1, Math.max(0, (Math.hypot(ex, ey) - 0.42) / 0.58));
+      return 0.04 + mask * 0.96;
     };
 
     const edgePoint = () => {
@@ -117,8 +129,7 @@ export function BrushField() {
 
     const spawnBundle = (scattered: boolean) => {
       const spot = edgePoint();
-      let angle = wind + (Math.random() - 0.5) * 0.7;
-      if (Math.random() < 0.42) angle += Math.PI * (0.55 + Math.random() * 0.5);
+      const angle = orbitAngle(spot.x, spot.y) + (Math.random() - 0.5) * 0.4;
       const count = 14 + Math.floor(Math.random() * 10);
       const px = -Math.sin(angle);
       const py = Math.cos(angle);
@@ -137,13 +148,13 @@ export function BrushField() {
       }
     };
 
-    const targetCount = () => Math.round((width * height) / 300);
+    const targetCount = () => Math.min(2400, Math.round((width * height) / 180));
 
     const fillPopulation = () => {
       strokes.length = 0;
       const goal = targetCount();
       let guard = 0;
-      while (strokes.length < goal && guard < 40) {
+      while (strokes.length < goal && guard < 200) {
         spawnBundle(true);
         guard += 1;
       }
@@ -151,12 +162,11 @@ export function BrushField() {
     };
 
     const resize = () => {
-      dpr = Math.min(window.devicePixelRatio || 1, 1.5);
       width = canvas.clientWidth;
       height = canvas.clientHeight;
-      canvas.width = Math.max(1, Math.floor(width * dpr));
-      canvas.height = Math.max(1, Math.floor(height * dpr));
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      canvas.width = Math.max(1, Math.floor(width));
+      canvas.height = Math.max(1, Math.floor(height));
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
       fillPopulation();
     };
 
@@ -169,52 +179,51 @@ export function BrushField() {
       const ny = Math.sin(stroke.angle);
       const px = -ny;
       const py = nx;
-      const hairs = stroke.broad ? 2 : 4;
+      const mask = edgeAlpha(stroke.x + nx * stroke.len * 0.5, stroke.y + ny * stroke.len * 0.5);
+      const alpha = fade * mask * (stroke.broad ? 0.16 : 0.38);
+      if (alpha < 0.03) return;
       ctx.strokeStyle = `rgb(${r | 0}, ${g | 0}, ${b | 0})`;
       ctx.lineCap = "round";
+      ctx.globalAlpha = alpha;
+      ctx.lineWidth = stroke.width;
+      const c1x = nx * stroke.len * 0.5 + px * stroke.wobble;
+      const c1y = ny * stroke.len * 0.5 + py * stroke.wobble;
+      const endX = nx * stroke.len;
+      const endY = ny * stroke.len;
 
-      for (let hair = 0; hair < hairs; hair++) {
-        const spread = (hair - (hairs - 1) / 2) * (stroke.broad ? 1.5 : stroke.width * 0.8);
-        const c1x = nx * stroke.len * 0.5 + px * stroke.wobble;
-        const c1y = ny * stroke.len * 0.5 + py * stroke.wobble;
-        const c2x = nx * stroke.len;
-        const c2y = ny * stroke.len;
-        const steps = 4;
-        for (let step = 0; step < steps; step++) {
-          const u0 = step / steps;
-          const u1 = (step + 1) / steps;
-          const at = (u: number) => {
-            const k = 1 - u;
-            return {
-              x: stroke.x + px * spread + 2 * k * u * c1x + u * u * c2x,
-              y: stroke.y + py * spread + 2 * k * u * c1y + u * u * c2y,
-            };
-          };
-          const p0 = at(u0);
-          const p1 = at(u1);
-          const mask = edgeAlpha((p0.x + p1.x) / 2, (p0.y + p1.y) / 2);
-          const alpha = fade * mask * (stroke.broad ? 0.16 : 0.38);
-          if (alpha < 0.03) continue;
-          ctx.globalAlpha = alpha;
-          ctx.lineWidth = stroke.width * (1 - u0 * 0.55);
-          ctx.beginPath();
-          ctx.moveTo(p0.x, p0.y);
-          ctx.lineTo(p1.x, p1.y);
-          ctx.stroke();
-        }
+      for (let hair = 0; hair < 2; hair++) {
+        const spread = (hair - 0.5) * (stroke.broad ? 1.5 : stroke.width * 0.8);
+        const ox = px * spread;
+        const oy = py * spread;
+        ctx.beginPath();
+        ctx.moveTo(stroke.x + ox, stroke.y + oy);
+        ctx.quadraticCurveTo(
+          stroke.x + ox + c1x,
+          stroke.y + oy + c1y,
+          stroke.x + ox + endX,
+          stroke.y + oy + endY,
+        );
+        ctx.stroke();
       }
     };
 
+    const FRAME_MS = 1000 / 30;
+
     const frame = (now: number) => {
       if (!running) return;
-      const dt = Math.min(0.05, Math.max(0, (now - last) / 1000 || 0));
+      const since = now - last;
+      if (!reduced && since < FRAME_MS) {
+        raf = requestAnimationFrame(frame);
+        return;
+      }
       last = now;
+      const dt = Math.min(0.05, Math.max(0, since / 1000 || 0));
+      const reach = Math.min(1, Math.hypot(pointer.x, pointer.y));
+      const cursorAngle = Math.atan2(pointer.y, pointer.x);
       if (!reduced) {
         elapsed += dt;
         const ambient =
           0.58 + Math.sin(elapsed * 0.09) * 0.42 + Math.sin(elapsed * 0.037) * 0.16;
-        const reach = Math.min(1, Math.hypot(pointer.x, pointer.y));
-        const cursorAngle = Math.atan2(pointer.y, pointer.x);
         wind = ambient + wrapAngle(cursorAngle - ambient) * reach * 0.8;
         pointer.vx *= Math.exp(-dt * 2.6);
         pointer.vy *= Math.exp(-dt * 2.6);
@@ -226,20 +235,43 @@ export function BrushField() {
       const rgb = reduced ? PALETTE[0] : mixPalette(elapsed);
 
       if (!reduced) {
+        const shoveX = pointer.vx * 760 * dt;
+        const shoveY = pointer.vy * 760 * dt;
+        const rx = Math.max(1, width * 0.46);
+        const ry = Math.max(1, height * 0.38);
+        const cx = width * 0.5;
+        const cy = height * 0.5;
         for (let i = strokes.length - 1; i >= 0; i--) {
           const stroke = strokes[i];
           stroke.age += dt;
-          stroke.x += Math.cos(stroke.angle) * stroke.speed * dt + pointer.vx * 760 * dt;
-          stroke.y += Math.sin(stroke.angle) * stroke.speed * dt + pointer.vy * 760 * dt;
+          const nx = Math.cos(stroke.angle);
+          const ny = Math.sin(stroke.angle);
+          stroke.x += nx * stroke.speed * dt + shoveX;
+          stroke.y += ny * stroke.speed * dt + shoveY;
+          const ex = (stroke.x - cx) / rx;
+          const ey = (stroke.y - cy) / ry;
+          const rad = Math.hypot(ex, ey);
+          if (rad < 0.48 && rad > 0.0001) {
+            const dx = stroke.x - cx;
+            const dy = stroke.y - cy;
+            const len = Math.hypot(dx, dy) || 1;
+            const push = (0.48 - rad) * 70 * dt;
+            stroke.x += (dx / len) * push;
+            stroke.y += (dy / len) * push;
+          }
+          const orbit = rad < 0.06 ? wind : Math.atan2(ry * ex, -rx * ey);
+          stroke.angle += wrapAngle(orbit - stroke.angle) * Math.min(1, 4 * dt);
           stroke.angle += Math.sin(elapsed * 0.55 + stroke.phase) * 0.08 * dt;
-          const reach = Math.min(1, Math.hypot(pointer.x, pointer.y));
-          stroke.angle += wrapAngle(Math.atan2(pointer.y, pointer.x) - stroke.angle) * reach * 0.7 * dt;
+          stroke.angle += wrapAngle(cursorAngle - stroke.angle) * reach * 0.55 * dt;
           const off =
             stroke.x < -stroke.len - 120 ||
             stroke.y < -stroke.len - 120 ||
             stroke.x > width + stroke.len + 120 ||
             stroke.y > height + stroke.len + 120;
-          if (stroke.age >= stroke.maxLife || off) strokes.splice(i, 1);
+          if (stroke.age >= stroke.maxLife || off) {
+            const lastStroke = strokes.pop();
+            if (lastStroke && i < strokes.length) strokes[i] = lastStroke;
+          }
         }
 
         let guard = 0;
@@ -306,7 +338,13 @@ export function BrushField() {
     <canvas
       ref={ref}
       aria-hidden
-      className="pointer-events-none absolute inset-0 h-full w-full"
+      className="pointer-events-none fixed inset-0 z-0 h-dvh w-full"
     />
   );
+}
+
+export function BrushField() {
+  const pathname = usePathname();
+  if (pathname === "/reproductor") return null;
+  return <WindCanvas />;
 }

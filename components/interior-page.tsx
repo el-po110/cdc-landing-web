@@ -6,7 +6,7 @@ export function InteriorPage({
   slot: string;
 }) {
   return (
-    <main className="bg-carbon-black px-[20px] pt-[calc(var(--nav-height)+var(--spacing-30))] text-center">
+    <main className="relative px-[20px] pt-[calc(var(--nav-height)+var(--spacing-30))] text-center">
       <h1 className="text-[28px] leading-[1.25] font-extrabold tracking-[-0.036em] text-pure-white">
         {title}
       </h1>
