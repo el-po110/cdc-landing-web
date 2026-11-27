@@ -1,5 +1,17 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: "Urbana";
+  src: url("/fonts/Urbana-%C2%AE.ttf") format("truetype");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+.lyric-urbana {
+  font-family: "Urbana", sans-serif;
+}
+
 @theme {
   --color-carbon-black: #111111;
   --color-signal-red: #e10600;
@@ -53,7 +65,7 @@
   --surface-app-window-surface: #ffffff;
   --surface-primary-action: #e10600;
 
-  --nav-height: 35px;
+  --nav-height: 68px;
 }
 
 body {
@@ -62,5 +74,44 @@ body {
   font-family: var(--font-sans);
   font-weight: 700;
   line-height: 1.25;
+}
+
+.seek-bar {
+  height: 6px;
+  border-radius: 999px;
+  appearance: none;
+  -webkit-appearance: none;
+  accent-color: #940000;
+  outline: none;
+}
+
+.seek-bar::-webkit-slider-runnable-track {
+  height: 6px;
+  background: transparent;
+  border: none;
+}
+
+.seek-bar::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  margin-top: -4px;
+  border-radius: 999px;
+  background: #940000;
+}
+
+.seek-bar::-moz-range-track {
+  height: 6px;
+  background: transparent;
+  border: none;
+}
+
+.seek-bar::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border: 0;
+  border-radius: 999px;
+  background: #940000;
 }
 

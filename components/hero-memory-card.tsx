@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useMemo, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { RoundedBox, useTexture } from "@react-three/drei";
 import { ShaderMaterial, SRGBColorSpace, type Group, type Texture } from "three";
@@ -72,7 +73,16 @@ function createGlitchMaterial(map: Texture) {
   return material;
 }
 
-function MemoryCard() {
+function MemoryCard({
+  mode,
+  playing,
+  onActivate,
+}: {
+  mode: "hero" | "transport";
+  playing: boolean;
+  onActivate?: () => void;
+}) {
+  const hero = mode === "hero";
   const spin = useRef<Group>(null);
   const shift = useRef<Group>(null);
   const follow = useRef<Group>(null);
@@ -90,13 +100,20 @@ function MemoryCard() {
     "/memory-card-face.png",
     "/memory-card-back.png",
   ]);
-  const frontGlitch = useMemo(() => createGlitchMaterial(front), [front]);
-  const backGlitch = useMemo(() => createGlitchMaterial(back), [back]);
+  const frontGlitch = useMemo(
+    () => (hero ? createGlitchMaterial(front) : null),
+    [front, hero],
+  );
+  const backGlitch = useMemo(
+    () => (hero ? createGlitchMaterial(back) : null),
+    [back, hero],
+  );
 
   useEffect(() => {
     reduceMotion.current = window.matchMedia(
       "(prefers-reduced-motion: reduce)",
     ).matches;
+    if (!hero) return;
     const onMove = (event: PointerEvent) => {
       const nx = (event.clientX / window.innerWidth) * 2 - 1;
       const ny = -((event.clientY / window.innerHeight) * 2 - 1);
@@ -117,7 +134,7 @@ function MemoryCard() {
       window.removeEventListener("pointermove", onMove);
       document.documentElement.removeEventListener("pointerout", onOut);
     };
-  }, []);
+  }, [hero]);
 
   for (const texture of [front, back]) {
     texture.colorSpace = SRGBColorSpace;
@@ -125,10 +142,12 @@ function MemoryCard() {
   }
 
   useFrame((state, delta) => {
-    if (spin.current) {
+    const spinNow = hero || (playing && !reduceMotion.current);
+    if (spin.current && spinNow) {
       spin.current.rotation.y += delta * 0.35;
     }
-    if (follow.current && !reduceMotion.current) {
+    if (!hero || reduceMotion.current) return;
+    if (follow.current) {
       const aim = pointer.current;
       const ease = Math.min(1, delta * 4);
       aim.x += (aim.tx - aim.x) * ease;
@@ -140,7 +159,7 @@ function MemoryCard() {
       follow.current.rotation.y = aim.x * 0.34 + aim.vx * 0.45;
       follow.current.rotation.x = -aim.y * 0.2 - aim.vy * 0.28;
     }
-    if (!shift.current || reduceMotion.current) return;
+    if (!shift.current || !frontGlitch || !backGlitch) return;
 
     const now = state.clock.elapsedTime;
     const burst = glitch.current;
@@ -173,9 +192,23 @@ function MemoryCard() {
   });
 
   return (
-    <group ref={shift} position={[0, -0.05, -0.7]}>
+    <group
+      ref={shift}
+      position={[0, -0.05, -0.7]}
+      onClick={(event) => {
+        event.stopPropagation();
+        onActivate?.();
+      }}
+      onPointerOver={(event) => {
+        event.stopPropagation();
+        document.body.style.cursor = "pointer";
+      }}
+      onPointerOut={() => {
+        document.body.style.cursor = "auto";
+      }}
+    >
       <group ref={follow}>
-      <group rotation={[0.22, 0, tilt]} scale={0.84}>
+      <group rotation={[0.22, 0, tilt]} scale={hero ? 0.84 : 1.35}>
       <group ref={spin} rotation={[0, 0.5, 0]}>
         <RoundedBox args={[1.46, 1.88, 0.16]} radius={0.08} smoothness={5}>
           <meshPhysicalMaterial
@@ -206,14 +239,23 @@ function MemoryCard() {
             polygonOffsetFactor={-1}
           />
         </mesh>
-        <mesh position={[0, 0, 0.11]} renderOrder={3}>
-          <planeGeometry args={[planeW, cardH]} />
-          <primitive object={frontGlitch} attach="material" />
-        </mesh>
-        <mesh position={[0, 0, -0.11]} rotation={[0, Math.PI, 0]} renderOrder={3}>
-          <planeGeometry args={[planeW, cardH]} />
-          <primitive object={backGlitch} attach="material" />
-        </mesh>
+        {frontGlitch && backGlitch ? (
+          <>
+            <mesh position={[0, 0, 0.11]} renderOrder={3} raycast={() => null}>
+              <planeGeometry args={[planeW, cardH]} />
+              <primitive object={frontGlitch} attach="material" />
+            </mesh>
+            <mesh
+              position={[0, 0, -0.11]}
+              rotation={[0, Math.PI, 0]}
+              renderOrder={3}
+              raycast={() => null}
+            >
+              <planeGeometry args={[planeW, cardH]} />
+              <primitive object={backGlitch} attach="material" />
+            </mesh>
+          </>
+        ) : null}
       </group>
       </group>
       </group>
@@ -221,20 +263,46 @@ function MemoryCard() {
   );
 }
 
-export function HeroMemoryCard() {
+export function HeroMemoryCard({
+  mode = "hero",
+  playing = false,
+  onActivate,
+}: {
+  mode?: "hero" | "transport";
+  playing?: boolean;
+  onActivate?: () => void;
+}) {
+  const router = useRouter();
+  const activate =
+    onActivate ?? (mode === "hero" ? () => router.push("/reproductor") : undefined);
+
   return (
-    <div className="h-full w-full" role="img" aria-label="Memory card roja girando">
+    <div
+      className={`h-full w-full${mode === "transport" ? " cursor-pointer" : ""}`}
+      role={mode === "hero" ? "link" : "button"}
+      tabIndex={0}
+      aria-label={
+        mode === "hero" ? "Abrir el reproductor" : playing ? "Pausar" : "Reproducir"
+      }
+      onClick={mode === "transport" ? () => activate?.() : undefined}
+      onKeyDown={(event) => {
+        if (event.key !== "Enter" && event.key !== " ") return;
+        event.preventDefault();
+        activate?.();
+      }}
+    >
       <Canvas
         camera={{ position: [0, 0, 5.8], fov: 30 }}
         dpr={[1, 1.75]}
         gl={{ alpha: true, antialias: true }}
+        style={{ pointerEvents: mode === "transport" ? "none" : "auto" }}
         onCreated={({ gl }) => gl.setClearColor(0x000000, 0)}
       >
         <ambientLight intensity={0.9} />
         <directionalLight position={[2.4, 3.2, 4]} intensity={2.6} />
         <directionalLight position={[-3.2, -1.2, 2]} intensity={0.45} />
         <Suspense fallback={null}>
-          <MemoryCard />
+          <MemoryCard mode={mode} playing={playing} onActivate={activate} />
         </Suspense>
       </Canvas>
     </div>

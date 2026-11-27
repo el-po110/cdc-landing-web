@@ -12,9 +12,14 @@ const links = [
 export function NavHeader() {
   const pathname = usePathname();
 
+  if (pathname === "/reproductor") return null;
+
   return (
-    <header className="fixed inset-x-0 top-0 z-10 bg-carbon-black px-[20px] py-[10px]">
-      <nav aria-label="Secciones" className="flex items-center justify-center">
+    <header className="pointer-events-none fixed inset-x-0 top-[16px] z-10 flex justify-center px-[16px]">
+      <nav
+        aria-label="Secciones"
+        className="pointer-events-auto flex items-center rounded-full bg-black px-[22px] py-[11px] shadow-[0_10px_28px_rgba(0,0,0,0.45)]"
+      >
         {links.map((link, index) => {
           const active = pathname === link.href;
 
@@ -23,7 +28,7 @@ export function NavHeader() {
               {index > 0 ? (
                 <span
                   aria-hidden
-                  className="px-[20px] text-[12px] leading-[1.25] font-extrabold text-silver-mist"
+                  className="px-[16px] text-[14px] leading-none font-extrabold text-pure-white"
                 >
                   |
                 </span>
@@ -31,7 +36,7 @@ export function NavHeader() {
               <Link
                 href={link.href}
                 aria-current={active ? "page" : undefined}
-                className={`text-[12px] leading-[1.25] font-extrabold tracking-normal ${
+                className={`text-[14px] leading-none font-extrabold tracking-normal ${
                   active ? "text-signal-red" : "text-pure-white"
                 }`}
               >

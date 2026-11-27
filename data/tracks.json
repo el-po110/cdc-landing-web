@@ -1,0 +1,12 @@
+{
+  "tracks": [
+    {
+      "id": "qmcs",
+      "title": "- Que mis cuerdas sangren -",
+      "audio": "/music/QMCS.wav",
+      "illustration": "/ilustrations/QMCS.png",
+      "illustrationSide": "right",
+      "lyrics": "/lyrics/QMCS.txt"
+    }
+  ]
+}
